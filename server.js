@@ -4,15 +4,12 @@ const cors = require('cors');
 
 const app = express();
 
-// CORS — allow the configured frontend/admin origins, or all if not set
-const allowedOrigins = (process.env.CORS_ORIGINS || '')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
-
+// CORS — allow requests from any origin (public API).
+// `origin: true` reflects the request's Origin header, which permits any origin
+// while staying compatible with credentialed requests.
 app.use(
   cors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    origin: true,
     credentials: true,
   })
 );
