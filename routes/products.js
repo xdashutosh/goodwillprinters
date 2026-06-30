@@ -271,13 +271,13 @@ router.get('/admin/:id', verifyToken, isAdmin, async (req, res) => {
 // Create product
 router.post('/', verifyToken, isAdmin, async (req, res) => {
   try {
-    const { category_id, name, slug, short_description, description, cover_style, available_sizes, is_featured, is_active, sort_order, meta_title, meta_description, meta_keywords } = req.body;
-    
+    const { category_id, name, slug, short_description, description, cover_style, available_sizes, is_featured, is_active, sort_order, meta_title, meta_description, meta_keywords, content } = req.body;
+
     const result = await pool.query(`
-      INSERT INTO products (category_id, name, slug, short_description, description, cover_style, available_sizes, is_featured, is_active, sort_order, meta_title, meta_description, meta_keywords)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      INSERT INTO products (category_id, name, slug, short_description, description, cover_style, available_sizes, is_featured, is_active, sort_order, meta_title, meta_description, meta_keywords, content)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
-    `, [category_id, name, slug, short_description, description, cover_style, JSON.stringify(available_sizes || []), is_featured || false, is_active !== false, sort_order || 0, meta_title, meta_description, meta_keywords]);
+    `, [category_id, name, slug, short_description, description, cover_style, JSON.stringify(available_sizes || []), is_featured || false, is_active !== false, sort_order || 0, meta_title, meta_description, meta_keywords, content ? JSON.stringify(content) : null]);
     
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -293,14 +293,14 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
 router.put('/:id', verifyToken, isAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { category_id, name, slug, short_description, description, cover_style, available_sizes, is_featured, is_active, sort_order, meta_title, meta_description, meta_keywords } = req.body;
-    
+    const { category_id, name, slug, short_description, description, cover_style, available_sizes, is_featured, is_active, sort_order, meta_title, meta_description, meta_keywords, content } = req.body;
+
     const result = await pool.query(`
       UPDATE products
-      SET category_id = $1, name = $2, slug = $3, short_description = $4, description = $5, cover_style = $6, available_sizes = $7, is_featured = $8, is_active = $9, sort_order = $10, meta_title = $11, meta_description = $12, meta_keywords = $13, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $14
+      SET category_id = $1, name = $2, slug = $3, short_description = $4, description = $5, cover_style = $6, available_sizes = $7, is_featured = $8, is_active = $9, sort_order = $10, meta_title = $11, meta_description = $12, meta_keywords = $13, content = COALESCE($14::jsonb, content), updated_at = CURRENT_TIMESTAMP
+      WHERE id = $15
       RETURNING *
-    `, [category_id, name, slug, short_description, description, cover_style, JSON.stringify(available_sizes || []), is_featured, is_active, sort_order, meta_title, meta_description, meta_keywords, id]);
+    `, [category_id, name, slug, short_description, description, cover_style, JSON.stringify(available_sizes || []), is_featured, is_active, sort_order, meta_title, meta_description, meta_keywords, (content !== undefined && content !== null) ? JSON.stringify(content) : null, id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });

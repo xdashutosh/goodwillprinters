@@ -74,14 +74,14 @@ router.get('/admin/all', verifyToken, isAdmin, async (req, res) => {
 // Create category
 router.post('/', verifyToken, isAdmin, async (req, res) => {
   try {
-    const { section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order, is_active } = req.body;
-    
+    const { section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order, is_active, content } = req.body;
+
     const result = await pool.query(`
-      INSERT INTO categories (section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      INSERT INTO categories (section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order, is_active, content)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
-    `, [section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order || 0, is_active !== false]);
-    
+    `, [section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order || 0, is_active !== false, content ? JSON.stringify(content) : null]);
+
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error(err);
@@ -96,14 +96,14 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
 router.put('/:id', verifyToken, isAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order, is_active } = req.body;
-    
+    const { section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order, is_active, content } = req.body;
+
     const result = await pool.query(`
       UPDATE categories
-      SET section_id = $1, name = $2, slug = $3, description = $4, size_label = $5, type_label = $6, image_url = $7, meta_title = $8, meta_description = $9, meta_keywords = $10, sort_order = $11, is_active = $12, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $13
+      SET section_id = $1, name = $2, slug = $3, description = $4, size_label = $5, type_label = $6, image_url = $7, meta_title = $8, meta_description = $9, meta_keywords = $10, sort_order = $11, is_active = $12, content = COALESCE($13::jsonb, content), updated_at = CURRENT_TIMESTAMP
+      WHERE id = $14
       RETURNING *
-    `, [section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order, is_active, id]);
+    `, [section_id, name, slug, description, size_label, type_label, image_url, meta_title, meta_description, meta_keywords, sort_order, is_active, (content !== undefined && content !== null) ? JSON.stringify(content) : null, id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Category not found' });
