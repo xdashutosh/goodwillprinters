@@ -91,6 +91,12 @@ const createTables = async () => {
     await client.query(`ALTER TABLE product_images ADD COLUMN IF NOT EXISTS color_hex VARCHAR(20)`);
     console.log('Created product_images table');
 
+    // Rich "content" JSONB (product good-points/unique/quality/specs, category
+    // intro/highlights/specs/faqs) — read by the site and written by the admin editors.
+    await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS content JSONB`);
+    await client.query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS content JSONB`);
+    console.log('Ensured content columns');
+
     // Enquiries
     await client.query(`
       CREATE TABLE IF NOT EXISTS enquiries (
@@ -138,6 +144,7 @@ const createTables = async () => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Migration failed:', error);
+    process.exitCode = 1; // fail loudly so CI/deploy doesn't treat a broken migration as success
   } finally {
     client.release();
     pool.end();

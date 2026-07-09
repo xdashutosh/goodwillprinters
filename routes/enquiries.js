@@ -46,9 +46,11 @@ ${message}
     `;
 
     // Fire and forget email sending
+    // Strip CR/LF from any value placed in the email subject to prevent header injection.
+    const safeName = String(name).replace(/[\r\n]+/g, ' ').slice(0, 120);
     sendEmail(
-      process.env.ADMIN_EMAIL, 
-      `New Enquiry from ${name} (Plan.A.Day)`, 
+      process.env.ADMIN_EMAIL,
+      `New Enquiry from ${safeName} (Plan.A.Day)`,
       emailText
     ).catch(err => console.error('Failed to send email:', err));
 

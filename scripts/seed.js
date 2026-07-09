@@ -12,6 +12,12 @@ const seedData = async () => {
 
     // 2. Admin User
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@plan-a-day.com';
+    if (!process.env.ADMIN_PASSWORD) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('ADMIN_PASSWORD must be set when seeding in production — refusing to create an admin with the default password.');
+      }
+      console.warn('⚠️  ADMIN_PASSWORD not set — using the insecure default "admin123". Set ADMIN_PASSWORD and reseed before going live.');
+    }
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
     
@@ -107,6 +113,7 @@ const seedData = async () => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Seeding failed:', error);
+    process.exitCode = 1;
   } finally {
     client.release();
     pool.end();

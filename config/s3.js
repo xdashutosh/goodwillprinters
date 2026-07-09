@@ -26,10 +26,14 @@ const publicBase = endpoint ? endpoint.replace('https://', `https://${bucket}.`)
 // Build the public URL for a stored object key
 const publicUrl = (key) => `${publicBase}/${key}`;
 
-// Extract the object key back out of a stored public URL
+// Extract the object key back out of a stored public URL.
+// Returns null if the URL does not belong to this bucket, so callers never
+// delete an arbitrary object from a caller-supplied string.
 const keyFromUrl = (url) => {
-  if (!url) return null;
-  return url.replace(`${publicBase}/`, '');
+  if (!url || !publicBase) return null;
+  const prefix = `${publicBase}/`;
+  if (!url.startsWith(prefix)) return null;
+  return url.slice(prefix.length);
 };
 
 module.exports = s3Client;

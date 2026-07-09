@@ -97,6 +97,7 @@ function readBatches() {
 
 async function doApply() {
   console.log(`\n${DRY_RUN ? '🔎 DRY RUN — no DB writes' : '🚀 EXECUTE — writing product content to live DB'}\n`);
+  if (!DRY_RUN) await q('ALTER TABLE products ADD COLUMN IF NOT EXISTS content JSONB');
   const products = await loadProducts();
   const byId = new Map(products.map((p) => [p.id, p]));
   const items = readBatches();
