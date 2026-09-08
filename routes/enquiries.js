@@ -7,8 +7,8 @@ const sendEmail = require('../utils/emailService');
 // Submit enquiry (Public)
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, company, message, product_id } = req.body;
-    
+    const { name, email, phone, company, subject, message, product_id } = req.body;
+
     // Validate
     if (!name || !email || !message) {
       return res.status(400).json({ error: 'Name, email, and message are required' });
@@ -16,10 +16,10 @@ router.post('/', async (req, res) => {
 
     // Insert into DB
     const result = await pool.query(`
-      INSERT INTO enquiries (name, email, phone, company, message, product_id, status)
-      VALUES ($1, $2, $3, $4, $5, $6, 'new')
+      INSERT INTO enquiries (name, email, phone, company, subject, message, product_id, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'new')
       RETURNING *
-    `, [name, email, phone, company, message, product_id || null]);
+    `, [name, email, phone, company, subject || null, message, product_id || null]);
     
     const enquiry = result.rows[0];
 
@@ -40,6 +40,7 @@ Name: ${name}
 Email: ${email}
 Phone: ${phone || 'N/A'}
 Company: ${company || 'N/A'}
+Subject: ${subject || 'N/A'}
 ${productDetails}
 Message:
 ${message}
@@ -48,9 +49,10 @@ ${message}
     // Fire and forget email sending
     // Strip CR/LF from any value placed in the email subject to prevent header injection.
     const safeName = String(name).replace(/[\r\n]+/g, ' ').slice(0, 120);
+    const safeSubject = String(subject || '').replace(/[\r\n]+/g, ' ').slice(0, 120);
     sendEmail(
       process.env.ADMIN_EMAIL,
-      `New Enquiry from ${safeName} (Plan.A.Day)`,
+      `New Enquiry from ${safeName}${safeSubject ? ` — ${safeSubject}` : ''} (Plan.A.Day)`,
       emailText
     ).catch(err => console.error('Failed to send email:', err));
 

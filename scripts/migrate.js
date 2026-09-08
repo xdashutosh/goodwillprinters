@@ -105,6 +105,7 @@ const createTables = async () => {
         email VARCHAR(255) NOT NULL,
         phone VARCHAR(50),
         company VARCHAR(255),
+        subject VARCHAR(255),
         message TEXT,
         product_id INT REFERENCES products(id) ON DELETE SET NULL,
         status VARCHAR(50) DEFAULT 'new',
@@ -112,6 +113,8 @@ const createTables = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    // Ensure the subject column exists on databases created before it was added
+    await client.query(`ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS subject VARCHAR(255)`);
     console.log('Created enquiries table');
 
     // Admin Users
@@ -138,6 +141,43 @@ const createTables = async () => {
       );
     `);
     console.log('Created site_settings table');
+
+    // Site Assets — every managed banner / video / image on the marketing site.
+    //  collection : logical group (hero_banners, showcase_videos, section_headers,
+    //               collection_cards, gifting, backgrounds, brand)
+    //  slot       : stable key for singletons (e.g. 'diaries', 'poster_2027');
+    //               NULL for free list items that are only ordered by sort_order
+    //  kind       : 'image' | 'video'
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS site_assets (
+        id SERIAL PRIMARY KEY,
+        collection VARCHAR(64) NOT NULL,
+        slot VARCHAR(120),
+        kind VARCHAR(16) NOT NULL DEFAULT 'image',
+        title VARCHAR(200),
+        subtitle VARCHAR(300),
+        link VARCHAR(255),
+        alt_text VARCHAR(255),
+        url TEXT,
+        webp_url TEXT,
+        thumbnail_url TEXT,
+        hover_url TEXT,
+        hover_webp_url TEXT,
+        sort_order INT DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS site_assets_collection_slot_uniq
+      ON site_assets (collection, slot) WHERE slot IS NOT NULL
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS site_assets_collection_idx
+      ON site_assets (collection, sort_order, id)
+    `);
+    console.log('Created site_assets table');
 
     await client.query('COMMIT');
     console.log('Migration completed successfully!');

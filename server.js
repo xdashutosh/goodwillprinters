@@ -31,6 +31,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/images', require('./routes/images'));
 app.use('/api/enquiries', require('./routes/enquiries'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/assets', require('./routes/assets'));
 
 // 404 handler for unknown routes
 app.use((req, res) => {

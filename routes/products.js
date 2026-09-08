@@ -102,10 +102,13 @@ router.get('/', async (req, res) => {
     const result = await pool.query(dataQuery, params);
     const products = await attachImagesToProducts(result.rows);
 
-    // Filter Aggregations (for sidebar)
-    // Only get aggregations if it's the first page to save DB load
+    // Filter aggregations (for the sidebar). Normally only computed for page 1
+    // to save DB load, but the client can also request them explicitly with
+    // ?withFilters=1 so a visitor who deep-links straight to page 2+ still gets
+    // a populated filter sidebar.
+    const withFilters = req.query.withFilters === '1' || req.query.withFilters === 'true';
     let filters = null;
-    if (page == 1) {
+    if (page === 1 || withFilters) {
       const filterParams = section ? [section] : [];
       const sectionFilter = section ? 'AND s.slug = $1' : '';
       
