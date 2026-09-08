@@ -1,5 +1,29 @@
 const { Pool } = require('pg');
+const dns = require('dns');
 require('dotenv').config();
+
+// Ensure reliable DNS resolution for Neon host even if local system/ISP DNS times out
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+  const origLookup = dns.lookup;
+  dns.lookup = function (hostname, options, callback) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    dns.resolve4(hostname, (err, addrs) => {
+      if (!err && addrs && addrs.length > 0) {
+        if (options && options.all) {
+          return callback(null, addrs.map((a) => ({ address: a, family: 4 })));
+        }
+        return callback(null, addrs[0], 4);
+      }
+      return origLookup.call(dns, hostname, options, callback);
+    });
+  };
+} catch (dnsErr) {
+  console.warn('DNS fallback setup warning:', dnsErr.message);
+}
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -22,3 +46,4 @@ pool.on('error', (err) => {
 });
 
 module.exports = pool;
+
