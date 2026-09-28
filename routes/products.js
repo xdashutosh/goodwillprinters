@@ -73,7 +73,8 @@ router.get('/', async (req, res) => {
       baseQuery += ` AND p.is_featured = true`;
     }
     if (search) {
-      baseQuery += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`;
+      // Also match the category/section so "organizer" or "a5 daily" find their products
+      baseQuery += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR p.cover_style ILIKE $${paramIndex} OR c.name ILIKE $${paramIndex} OR s.name ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
     }
@@ -83,12 +84,14 @@ router.get('/', async (req, res) => {
     const countResult = await pool.query(countQuery, params);
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
-    // Sorting
-    let orderBy = 'ORDER BY p.created_at DESC'; // default newest
-    if (sort === 'oldest') orderBy = 'ORDER BY p.created_at ASC';
-    else if (sort === 'name_asc') orderBy = 'ORDER BY p.name ASC';
-    else if (sort === 'name_desc') orderBy = 'ORDER BY p.name DESC';
-    else if (sort === 'sort_order') orderBy = 'ORDER BY p.sort_order ASC';
+    // Sorting — every order ends on a unique key so pages never overlap or skip
+    // rows when many products share a created_at / sort_order (bulk imports).
+    // Names sort case-insensitively (the DB collation would put "BRISTOL" before "Baden").
+    let orderBy = 'ORDER BY p.created_at DESC, p.id DESC'; // default newest
+    if (sort === 'oldest') orderBy = 'ORDER BY p.created_at ASC, p.id ASC';
+    else if (sort === 'name_asc') orderBy = 'ORDER BY LOWER(p.name) ASC, p.id ASC';
+    else if (sort === 'name_desc') orderBy = 'ORDER BY LOWER(p.name) DESC, p.id DESC';
+    else if (sort === 'sort_order') orderBy = 'ORDER BY p.sort_order ASC, LOWER(p.name) ASC, p.id ASC';
 
     // Get Data
     const dataQuery = `
